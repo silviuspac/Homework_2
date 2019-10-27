@@ -1,34 +1,36 @@
-# RQ1 / RQ2
+# RQ2
 
-def add_teams_scores(df):    # add 4 colums (team1, team2, score1, score2) by splitting label column
-	df['team1'] = ''
-	df['team2'] = ''
-	df['score1'] = 0
-	df['score2'] = 0
-	for i in range(len(df)):
-    df['team1'][i] = ((df['label'][i].replace(',', '-')).split('-'))[0].strip()
-    df['team2'][i] = ((df['label'][i].replace(',', '-')).split('-'))[1].strip()
-    p1 = ((df['label'][i].replace(',', '-')).split('-'))[2].strip()
-    p2 = ((df['label'][i].replace(',', '-')).split('-'))[3].strip()
-    if(int(p1) > int(p2)):
-        df['score1'][i] +=  3
-    elif(int(p1) == int(p2)):
-        df['score1'][i] += 1
-        df['score2'][i] += 1
-    else:
-        df['score2'][i] += 3
+import pandas as pd
 
-def team_points(df):    # return a DataFrame with the points of each team sorted by week
-	d = {}
-	for i in range(len(df)):
-		if df.team1[i] not in d:
-			d[df.team1[i]] = [int(df.score1[df.gameweek[i]-1]),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-    	else:
-        	d[df.team1[i]][df.gameweek[i]-1] += df.score1[i] + d[df.team1[i]][df.gameweek[i]-2]
-    	if df.team2[i] not in d:
-        	d[df.team2[i]] = [int(df.score2[df.gameweek[i]-1]),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-    	else:
-        	d[df.team2[i]][df.gameweek[i]-1] += df.score2[i] + d[df.team2[i]][df.gameweek[i]-2]
-    return DataFrame(d)
+def contingency_table(dataframe, teams):
+    for i in range(len(teams)):
+        globals()['dic_t%s' % i] = {"win" : [0,0], "lose" : [0,0], "draw" : [0,0]}
 
-def cont_table(df, team):
+    for i in range(len(dataframe)):
+        for j in range(len(teams)):        
+            if dataframe.team1[i] == teams[j] and dataframe.team2[i] not in teams:
+                if dataframe.score1[i] > dataframe.score2[i]:
+                    eval('dic_t%s' % j)["win"][0] += 1
+                elif dataframe.score1[i] < dataframe.score2[i]:
+                    eval('dic_t%s' % j)["lose"][0] += 1
+                else:
+                    eval('dic_t%s' % j)["draw"][0] += 1
+            elif dataframe.team2[i] == teams[j] and dataframe.team1[i] not in teams:
+                if dataframe.score1[i] > dataframe.score2[i]:
+                    eval('dic_t%s' % j)["win"][1] += 1
+                elif dataframe.score1[i] < dataframe.score2[i]:
+                    eval('dic_t%s' % j)["lose"][1] += 1
+                else:
+                    eval('dic_t%s' % j)["draw"][1] += 1
+
+    for k in range(1, 6):
+        globals()['cont_table_t%s' % k] = pd.DataFrame(eval('dic_t%s' % int(k-1)))
+        eval('cont_table_t%s' % k).index = ['home', 'away']
+
+    cont_table = cont_table_t1 + cont_table_t2 + cont_table_t3 + cont_table_t4 + cont_table_t5
+
+    return(cont_table)
+
+# The above function takes in input the dataframe as modified in RQ1, a list of teams,
+# and return a contingency table with the amount of victories, losses and draws ready
+# to undergo the chi-squared test provided by scipy's library with chi2_contingency.
