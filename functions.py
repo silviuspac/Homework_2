@@ -1,6 +1,128 @@
 import pandas as pd
 import seaborn as sn
 import codecs
+import numpy as np
+import matplotlib.pyplot as plt
+from bokeh.plotting import figure
+from collections import OrderedDict
+
+#RQ1
+
+def load_PremierLeague_games(premier_games):
+	pl = pd.read_json(premier_games)
+	# Take only columns we need
+	df = pd.DataFrame(pl, columns = ['gameweek','label'])
+	# Sort data frame by game week
+	df.sort_values(by = ['gameweek'], inplace = True)
+	df.reset_index(drop = True, inplace = True)
+	df = split_label(df)
+	return df
+
+
+# split label column in 4 columns
+def split_label(df):
+
+	# create the 4 columns
+	df['team1'] = ''
+	df['team2'] = ''
+	df['points1'] = 0
+	df['points2'] = 0
+
+	# for every row
+	for i in range(len(df)):
+		# split rows
+		temp = df['label'][i]
+		l = ((temp.replace(',', '-')).split('-'))
+		df['team1'][i] = l[0].strip()
+		df['team2'][i] = l[1].strip()
+		p1 = l[2].strip()
+		p2 = l[3].strip()
+
+		# points earned by the teams
+		if(int(p1) > int(p2)):
+		    df['points1'][i] +=  3
+		elif(int(p1) == int(p2)):
+		    df['points1'][i] += 1
+		    df['points2'][i] += 1
+		else:
+		    df['points2'][i] += 3
+
+	return df
+
+def get_points_by_week(df):
+
+	# Create dict with points week by week
+	d = {}
+	for i in range(len(df)):
+	    if df.team1[i] not in d:
+	        d[df.team1[i]] = [int(df.points1[i]),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+	    else:
+	        d[df.team1[i]][df.gameweek[i]-1] += df.points1[i] + d[df.team1[i]][df.gameweek[i]-2]
+	    if df.team2[i] not in d:
+	        d[df.team2[i]] = [int(df.points2[i]),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+	    else:
+	        d[df.team2[i]][df.gameweek[i]-1] += df.points2[i] + d[df.team2[i]][df.gameweek[i]-2]
+	allsquad = pd.DataFrame(d)
+	allsquad.index = np.arange(1, len(allsquad)+1)
+
+
+	# find longest win/lose streak
+	streak = OrderedDict()
+	for elem in d:
+	    if elem not in streak:
+	        streak[elem] = [0, 0]   # [win, lose] streak
+	    current_win = 1
+	    current_lose = 1
+	    max_win = 1
+	    max_lose = 1
+	    for i in range(1, len(d[elem])):
+	        if d[elem][i] == d[elem][i-1] + 3:
+	            current_win += 1
+	            if current_lose >= max_lose:
+	                max_lose = current_lose
+	            current_lose = 0
+	        elif d[elem][i] == d[elem][i-1]:
+	            current_lose += 1
+	            if current_win >= max_win:
+	                max_win = current_win
+	            current_win = 0
+	        else:
+	            if current_lose >= max_lose:
+	                max_lose = current_lose
+	            current_lose = 0
+	            if current_win >= max_win:
+	                max_win = current_win
+	            current_win = 0
+	        streak[elem][0] = max_win
+	        streak[elem][1] = max_lose
+	win_ord = OrderedDict(sorted(streak.items(), key=lambda x:x[1][0]))   # sort by win streak
+	winner1 = list(win_ord)[-1]
+	winner2 = list(win_ord)[-2]
+	lose_ord = OrderedDict(sorted(streak.items(), key=lambda x:x[1][1]))   # sort by win streak
+	loser1 = list(lose_ord)[-1]
+	loser2 = list(lose_ord)[-2]
+
+	plot_points(allsquad, winner1, winner2, loser1, loser2)
+
+def plot_points(df, winner1, winner2, loser1, loser2):
+	fig, ax = plt.subplots()
+	sn.set(font_scale = 1.5)
+	fig.set_size_inches(16, 11)
+	ax.xaxis.grid(False)
+	ax.set_xticks(list(range(1, 39))) 
+	ax.set_xticklabels(list(range(1, 39)), fontsize = 14, horizontalalignment='right')
+	ax.axes.set_title("Rankings", fontsize = 30, fontweight="bold")
+	ax.set_xlabel("Gameweeks",fontsize = 20)
+	ax.set_ylabel("Points",fontsize = 20)
+	x = sn.lineplot(data = df, hue = df.columns, ax = ax, legend = 'full', palette = 'cubehelix', style = 'choice', 
+	                dashes = False, size = 'coherence', sizes=(.25, 2.5))
+	x.legend(loc='center right', bbox_to_anchor=(1.25, 0.5), ncol=1, fontsize = 15)
+	# ax.set_xticks([float(n)+0.5 for n in ax.get_xticks()])
+	plt.plot(df[winner1], marker = '', linewidth = 15, alpha = 0.5)
+	plt.plot(df[winner2], marker = '', linewidth = 15, alpha=0.5)
+	plt.plot(df[loser1], marker = '', linewidth = 15, alpha=0.5)
+	plt.plot(df[loser2], marker = '', linewidth = 15, alpha=0.5)
+	plt.show(x)
 
 # RQ4
 
