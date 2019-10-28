@@ -1,5 +1,56 @@
 import pandas as pd
 import seaborn as sn
+import codecs
+
+# RQ4
+
+def accurate_pass(tags):
+    for el in tags:
+        if el['id'] == 1801:
+            return 1
+    return 0
+
+def load_passes(e, p):
+	# Load events in Premier League
+	events = pd.read_json(e)
+	# Take only columns we need
+	df_events = pd.DataFrame(events, columns = ['eventId', 'tags', 'playerId', 'eventName'])
+	# Take only pass events
+	df_events = df_events.loc[df_events['eventId'] == 8]
+	# Add column with accutate(1) and not accurate(0)
+	df_events = df_events.assign(comp = df_events["tags"].apply(accurate_pass))
+
+	#load players
+	players = pd.read_json(p)
+	df_players = pd.DataFrame(players, columns = ['wyId', 'shortName'])
+
+	# merge passes and player to find names
+	df_players.rename(columns = {'wyId' : 'playerId'}, inplace = True)
+	df_merged = pd.merge(df_events, df_players, on = "playerId")
+
+	return df_merged
+
+def top10_accuratePlayers(data):
+	# mean of total passes
+	mean = data.groupby(['shortName']).count().mean()[0]
+
+	# remove players who doesn't hame min number of passes (<mean)
+	value_counts = data['shortName'].value_counts()
+	to_remove = value_counts[value_counts < mean].index
+	data = data[~data.shortName.isin(to_remove)]
+
+	# Percenteage of accurate passes (accurate/attempted)
+	df_g = data[data['comp'] == 1].groupby(['shortName']).size()/(data.groupby(['shortName']).size())
+
+	# Sort most accurate players
+	df_g.sort_values(ascending = False, inplace = True)
+	res = df_g.to_dict()
+	l = list(res.keys())
+	# Print top 10 accurate players
+	for i in range(10):
+  	  l[i] = [codecs.unicode_escape_decode(l[i])[0], df_g[i]]
+  	  print(f"{l[i][0]:<15}{l[i][1]:>10}")
+
 
 # CR1
 
