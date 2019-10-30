@@ -28,13 +28,16 @@ def coachHelper(coach_teams, nation):
   coach_teams_en.drop_duplicates(subset = "currentTeamId", keep="first", inplace = True )
   return coach_teams_en
 
-def boxplotCoaches(coach_teams):
+def boxplotCoaches(coach_teams, nation = ''):
   se.set(style = "whitegrid", font_scale = 1.5)
   plt.figure(figsize=(16,4))
   box = se.boxplot(x = coach_teams['age'], color = 'palegoldenrod')
   box = se.stripplot(x = coach_teams['age'], data = coach_teams, jitter = True, marker = 'o', alpha = 1, color = 'tan', 
                   size = 10, linewidth = 1.5)
-  box.axes.set_title('Boxplot for the age of coaches', fontsize = 25, fontweight = 'bold')
+  title = 'Boxplot for the age of coaches'
+  if nation != '':
+    title = title + '('+nation+')'
+  box.axes.set_title(title, fontsize = 25, fontweight = 'bold')
   box.set_xlabel('Age', fontsize = 20)
 
 def printYoungestCoaches(coach_teams):
@@ -93,13 +96,16 @@ def mergedAirDuelsPlayers(air_duels_won_by_player, air_duels_by_player):
   air_duels_by_player_mg_redux = air_duels_by_player_mg_redux.assign(category = air_duels_by_player_mg_redux.height.apply(assignHeightCategory))
   return air_duels_by_player_mg_redux
 
-def airDuelsScatterPlot(air_duels_by_player_mg_redux):
+def airDuelsScatterPlot(air_duels_by_player_mg_redux, nation = ''):
   se.set(style = "ticks", font_scale = 1.5)
   plt.figure(figsize=(16,10))
   sc = plt.scatter(air_duels_by_player_mg_redux.height, air_duels_by_player_mg_redux.ratio, alpha = 1,
                   c = air_duels_by_player_mg_redux.height, s= 150, cmap = 'Spectral', edgecolors = 'black')
   plt.colorbar(sc)
-  plt.title('Height vs. Ratio scatterplot', fontsize = 25, fontweight = 'bold')
+  title = 'Height vs. Ratio scatterplot'
+  if nation != '':
+        title = 'Height vs. Ratio ('+nation+')'
+  plt.title(title, fontsize = 25, fontweight = 'bold')
   plt.xlabel('Height', fontsize = 20)
   plt.ylabel('Ratio', fontsize = 20)
 
@@ -298,5 +304,41 @@ def plotFouls(fouls_per_match):
   plt.xticks(y_pos, objects)
   plt.ylabel('Fouls')
   plt.title('Leagues')
-
   plt.show()
+
+def load_games(games):
+	pl = pd.read_json(games)
+	# Take only columns we need
+	df = pd.DataFrame(pl, columns = ['gameweek','label'])
+	# Sort data frame by game week
+	df.sort_values(by = ['gameweek'], inplace = True)
+	df.reset_index(drop = True, inplace = True)
+	df = split_label(df)
+	return df
+
+def split_label(df):
+	df['team1'] = ''
+	df['team2'] = ''
+	df['points1'] = 0
+	df['points2'] = 0
+	df.label = df.label.str.replace(r"-\\u00c9", "_")
+	# for every row
+	for i in range(len(df)):
+		# split rows
+		temp = df['label'][i]
+		l = ((temp.replace(',', '-')).split('-'))
+		df['team1'][i] = l[0].strip()
+		df['team2'][i] = l[1].strip()
+		p1 = l[2].strip()
+		p2 = l[3].strip()
+		# points earned by the teams
+		if(int(p1) > int(p2)):
+		    df['points1'][i] +=  3
+		elif(int(p1) == int(p2)):
+		    df['points1'][i] += 1
+		    df['points2'][i] += 1
+		else:
+		    df['points2'][i] += 3
+
+	return df
+

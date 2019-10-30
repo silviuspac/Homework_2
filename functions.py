@@ -8,7 +8,7 @@ from collections import OrderedDict
 
 #RQ1
 
-def load_PremierLeague_games(premier_games):
+def load_games(premier_games):
 	pl = pd.read_json(premier_games)
 	# Take only columns we need
 	df = pd.DataFrame(pl, columns = ['gameweek','label'])
@@ -49,7 +49,7 @@ def split_label(df):
 
 	return df
 
-def get_points_by_week(df):
+def get_points_by_week(df, gamew = 38):
 
 	# Create dict with points week by week
 	d = {}
@@ -63,9 +63,7 @@ def get_points_by_week(df):
 	    else:
 	        d[df.team2[i]][df.gameweek[i]-1] += df.points2[i] + d[df.team2[i]][df.gameweek[i]-2]
 	allsquad = pd.DataFrame(d)
-	allsquad.index = np.arange(1, len(allsquad)+1)
-
-
+	allsquad.index = np.arange(1, len(allsquad)+1)        
 	# find longest win/lose streak
 	streak = OrderedDict()
 	for elem in d:
@@ -102,19 +100,19 @@ def get_points_by_week(df):
 	loser1 = list(lose_ord)[-1]
 	loser2 = list(lose_ord)[-2]
 
-	plot_points(allsquad, winner1, winner2, loser1, loser2)
+	plot_points(allsquad, winner1, winner2, loser1, loser2, gamew)
 
-def plot_points(df, winner1, winner2, loser1, loser2):
+def plot_points(df, winner1, winner2, loser1, loser2, gamew = 38):
 	fig, ax = plt.subplots()
 	sn.set(font_scale = 1.5)
 	fig.set_size_inches(16, 11)
 	ax.xaxis.grid(False)
-	ax.set_xticks(list(range(1, 39))) 
-	ax.set_xticklabels(list(range(1, 39)), fontsize = 14, horizontalalignment='right')
+	ax.set_xticks(list(range(1, gamew+1))) 
+	ax.set_xticklabels(list(range(1, gamew+1)), fontsize = 14, horizontalalignment='right')
 	ax.axes.set_title("Rankings", fontsize = 30, fontweight="bold")
 	ax.set_xlabel("Gameweeks",fontsize = 20)
 	ax.set_ylabel("Points",fontsize = 20)
-	x = sn.lineplot(data = df, hue = df.columns, ax = ax, legend = 'full', palette = 'cubehelix', style = 'choice', 
+	x = sn.lineplot(data = df[:gamew], hue = df.columns, ax = ax, legend = 'full', palette = 'cubehelix', style = 'choice', 
 	                dashes = False, size = 'coherence', sizes=(.25, 2.5))
 	x.legend(loc='center right', bbox_to_anchor=(1.25, 0.5), ncol=1, fontsize = 15)
 	# ax.set_xticks([float(n)+0.5 for n in ax.get_xticks()])
